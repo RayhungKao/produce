@@ -1,0 +1,112 @@
+@import "@/styles/variables.scss";
+
+.container {
+  position: relative;
+  width: 100%;
+  margin-top: 64px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(180deg, #ffffff 0%, #000000 100%);
+  padding: 60px 0px;
+  min-height: 400px;
+
+  @include rwd-custom($width-lg) {
+    padding: 30px 20px;
+  }
+}
+
+.swiperContainer {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.swiper {
+  padding: 10px;
+}
+
+.titleContainer {
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50px;
+  padding: 0 4px 4px;
+  text-align: center;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 23px;
+  color: #000;
+
+  @include rwd-custom($width-sm) {
+    font-size: 15px;
+    line-height: 18px;
+  }
+}
+
+.link {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+
+  &:hover .title {
+    color: #0088ee;
+  }
+}
+
+.card {
+  position: relative;
+  cursor: pointer;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 9px 0 #000000;
+  background-color: #fff;
+}
+
+.imageBox {
+  position: relative;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 21.26px;
+  height: 35.58px;
+
+  @include rwd-custom($width-sm) {
+    display: none;
+  }
+}
+
+.leftArrow {
+  left: -50px;
+}
+
+.rightArrow {
+  right: -50px;
+}
+
+.disabled {
+  opacity: 0.2;
+}
+
+.arrowImage {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  transform: translateY(-50%);
+}

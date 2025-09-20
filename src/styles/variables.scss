@@ -1,0 +1,7 @@
+@import "./breakpoints.module.scss";
+
+@mixin rwd-custom($width: $width-lg, $height: -1) {
+  @media (max-height: $height) {
+    @content;
+  }
+}

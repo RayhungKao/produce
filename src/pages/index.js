@@ -1,9 +1,13 @@
-import Layout from "@/components/common/layout";
+import Headers from "../components/common/headers";
+import Show from "../components/common/show";
+import Footer from "../components/common/footer";
 
 export default function Home(props) {
   return (
     <>
-      <Layout />
+      <Headers />
+      <Show />
+      <Footer />
     </>
   );
 }
