@@ -1,0 +1,68 @@
+@use "@/styles/variables.scss" as *;
+
+.container {
+  min-height: 100vh;
+  padding: 84px 40px 40px;
+  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+
+  @include rwd-custom($width-lg) {
+    padding: 84px 20px 20px;
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 12px;
+
+  @include rwd-custom($width-sm) {
+    font-size: 1.8rem;
+  }
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+
+  @include rwd-custom($width-sm) {
+    font-size: 0.95rem;
+  }
+}
+
+.mainContent {
+  display: flex;
+  gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  @include rwd-custom($width-lg) {
+    flex-direction: column;
+  }
+}
+
+.leftPanel {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @include rwd-custom($width-lg) {
+    flex: 1;
+  }
+}
+
+.centerPanel {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}

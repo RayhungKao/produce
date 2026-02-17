@@ -1,12 +1,12 @@
 import Headers from "../components/common/headers";
-import FeaturedProjects from "../components/common/featured-projects";
 import Footer from "../components/common/footer";
+import ImageConverter from "../components/features/image-converter";
 
-export default function Home(props) {
+export default function ImageConverterPage() {
   return (
     <>
       <Headers />
-      <FeaturedProjects />
+      <ImageConverter />
       <Footer />
     </>
   );

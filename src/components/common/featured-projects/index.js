@@ -25,7 +25,7 @@ const swiperSettings = {
 };
 const DEFAULT_PREVIEW_CARDS = 4;
 
-export default function Show() {
+export default function FeaturedProjects() {
   const sliderRef = useRef(null);
   const { isDesktop } = useWindowDevice();
   const [canShowArrow, setshowArrow] = useState(false);

@@ -1,11 +1,11 @@
 const cards = [
   {
-    title: "Avatar 1",
-    link: "#",
+    title: "Image Converter",
+    link: "/image-converter",
     image: {
       data: {
         attributes: {
-          url: "/assets/images/avatars/avatar-1.png",
+          url: "/assets/images/cards/image-converter.png",
         },
       },
     },

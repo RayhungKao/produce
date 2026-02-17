@@ -1,7 +1,8 @@
-@import "./breakpoints.module.scss";
+@forward "./breakpoints.module.scss";
+@use "./breakpoints.module.scss" as *;
 
 @mixin rwd-custom($width: $width-lg, $height: -1) {
-  @media (max-height: $height) {
+  @media (max-width: $width) {
     @content;
   }
 }
