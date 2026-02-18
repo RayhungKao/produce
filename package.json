@@ -24,7 +24,6 @@
     "@eslint/eslintrc": "^3",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.0.0",
-    "canvas": "^2.11.2",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "identity-obj-proxy": "^3.0.0",
