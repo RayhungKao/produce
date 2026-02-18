@@ -4,9 +4,17 @@ import FileUpload from "./components/file-upload";
 import CanvasPreview from "./components/canvas-preview";
 import ConversionOptions from "./components/conversion-options";
 import TechExplanation from "./components/tech-explanation";
+import SampleImages from "./components/sample-images";
 import { getSupportedFormats, convertImage } from "./utils/image-utils";
 
+// Input mode tabs
+const INPUT_MODES = {
+  UPLOAD: "upload",
+  SAMPLES: "samples",
+};
+
 export default function ImageConverter() {
+  const [inputMode, setInputMode] = useState(INPUT_MODES.UPLOAD);
   const [originalFile, setOriginalFile] = useState(null);
   const [originalImage, setOriginalImage] = useState(null);
   const [convertedBlob, setConvertedBlob] = useState(null);
@@ -35,11 +43,16 @@ export default function ImageConverter() {
   }, []);
 
   // Handle file selection (receives validation result from FileUpload)
-  const handleFileSelect = useCallback(async (file) => {
+  const handleFileSelect = useCallback(async (file, metadata = {}) => {
     setError(null);
     setOriginalFile(file);
     setConvertedBlob(null);
     setCurrentStep(1);
+
+    // When selecting a sample, switch to upload mode to show consistent UI
+    if (metadata.isSample) {
+      setInputMode(INPUT_MODES.UPLOAD);
+    }
 
     try {
       // Create image from file using FileReader
@@ -123,6 +136,18 @@ export default function ImageConverter() {
     setCurrentStep(0);
   }, []);
 
+  // Switch input mode
+  const handleModeChange = useCallback(
+    (mode) => {
+      if (mode !== inputMode) {
+        // Reset state when switching modes
+        handleReset();
+        setInputMode(mode);
+      }
+    },
+    [inputMode, handleReset],
+  );
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -135,12 +160,40 @@ export default function ImageConverter() {
 
       <div className={styles.mainContent}>
         <div className={styles.leftPanel}>
-          <FileUpload
-            onFileSelect={handleFileSelect}
-            currentFile={originalFile}
-            onReset={handleReset}
-            error={error}
-          />
+          {/* Mode Toggle Tabs */}
+          <div className={styles.modeTabs}>
+            <button
+              className={`${styles.modeTab} ${inputMode === INPUT_MODES.UPLOAD ? styles.active : ""}`}
+              onClick={() => handleModeChange(INPUT_MODES.UPLOAD)}
+              aria-pressed={inputMode === INPUT_MODES.UPLOAD}
+            >
+              <span className={styles.tabIcon}>📤</span>
+              Upload Your Image
+            </button>
+            <button
+              className={`${styles.modeTab} ${inputMode === INPUT_MODES.SAMPLES ? styles.active : ""}`}
+              onClick={() => handleModeChange(INPUT_MODES.SAMPLES)}
+              aria-pressed={inputMode === INPUT_MODES.SAMPLES}
+            >
+              <span className={styles.tabIcon}>🧪</span>
+              Try Samples
+            </button>
+          </div>
+
+          {/* Conditional Input Area */}
+          {inputMode === INPUT_MODES.UPLOAD ? (
+            <FileUpload
+              onFileSelect={handleFileSelect}
+              currentFile={originalFile}
+              onReset={handleReset}
+              error={error}
+            />
+          ) : (
+            <SampleImages
+              onImageSelect={handleFileSelect}
+              disabled={isConverting}
+            />
+          )}
 
           {originalImage && (
             <ConversionOptions
