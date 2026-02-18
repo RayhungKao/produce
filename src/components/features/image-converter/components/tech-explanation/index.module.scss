@@ -12,17 +12,166 @@
   font-size: 1.8rem;
   font-weight: 700;
   color: #1a1a2e;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   text-align: center;
 }
 
 .intro {
   text-align: center;
   color: #666;
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.6;
-  max-width: 800px;
-  margin: 0 auto 40px;
+  max-width: 600px;
+  margin: 0 auto 30px;
+}
+
+// ==========================================
+// Data Flow Diagram Section
+// ==========================================
+
+.dataFlowSection {
+  margin-bottom: 40px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 20px;
+  text-align: center;
+}
+
+.dataFlow {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+.flowItem {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.flowNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  min-width: 110px;
+  text-align: center;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.flowNodeActive {
+  opacity: 1;
+  border-color: #0088ee;
+  box-shadow: 0 0 0 3px rgba(0, 136, 238, 0.15);
+}
+
+.flowNodeCompleted {
+  opacity: 1;
+  border-color: #28a745;
+  background: #f0fff4;
+}
+
+.flowNodeSource {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.flowNodeTarget {
+  border-color: #0088ee;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(0, 136, 238, 0.2);
+}
+
+.flowLabel {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.flowType {
+  font-size: 0.7rem;
+  color: #888;
+  font-family: "Fira Code", "Consolas", monospace;
+  margin-bottom: 2px;
+}
+
+.flowDesc {
+  font-size: 0.65rem;
+  color: #666;
+  line-height: 1.3;
+}
+
+.flowArrow {
+  font-size: 1.5rem;
+  color: #ccc;
+  padding: 0 8px;
+  transition: color 0.3s ease;
+}
+
+.flowArrowActive {
+  color: #f59e0b;
+  font-weight: bold;
+}
+
+.flowArrowCompleted {
+  color: #28a745;
+}
+
+.flowLegend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 2px solid;
+}
+
+.legendSource {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.legendTarget {
+  border-color: #0088ee;
+  background: #eff6ff;
+}
+
+.legendCompleted {
+  border-color: #28a745;
+  background: #f0fff4;
 }
 
 .timeline {
@@ -167,31 +316,155 @@
   white-space: pre;
 }
 
-.keyPoints {
-  background: #f8f9fa;
+// Transform badge showing data flow for each step
+.transformBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f4ff 100%);
+  border-radius: 20px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.transformFrom {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.transformArrow {
+  color: #888;
+}
+
+.transformTo {
+  color: #0088ee;
+  font-weight: 600;
+}
+
+// WHY box - emphasizes reasoning
+.whyBox {
+  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+  border-left: 4px solid #eab308;
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.whyLabel {
+  display: inline-block;
+  background: #eab308;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.whyText {
+  margin: 0;
+  color: #713f12;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+// Pros and Cons containers
+.prosConsContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.prosBox,
+.consBox {
+  padding: 12px;
   border-radius: 8px;
-  padding: 16px;
-  border-left: 3px solid #0088ee;
 
   h4 {
-    margin: 0 0 10px;
-    font-size: 0.95rem;
-    color: #333;
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
   }
 
   ul {
     margin: 0;
-    padding-left: 20px;
+    padding-left: 0;
+    list-style: none;
   }
 
   li {
-    color: #555;
-    font-size: 0.9rem;
-    line-height: 1.7;
+    font-size: 0.8rem;
+    line-height: 1.5;
     margin-bottom: 4px;
 
     &:last-child {
       margin-bottom: 0;
+    }
+  }
+}
+
+.prosBox {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+
+  h4 {
+    color: #166534;
+  }
+
+  li {
+    color: #15803d;
+  }
+}
+
+.consBox {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+
+  h4 {
+    color: #92400e;
+  }
+
+  li {
+    color: #a16207;
+  }
+}
+
+.alternativeNote {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #eff6ff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
+// Key Insight section at the bottom
+.keyInsight {
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+  border-radius: 12px;
+  border-left: 4px solid #a855f7;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 1.1rem;
+    color: #6b21a8;
+  }
+
+  p {
+    margin: 0;
+    color: #581c87;
+    line-height: 1.7;
+    font-size: 0.95rem;
+
+    strong {
+      color: #7c3aed;
     }
   }
 }
@@ -204,57 +477,53 @@
 
   h3 {
     margin: 0 0 16px;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #1a1a2e;
   }
 }
 
-.apiTable {
-  display: grid;
-  gap: 8px;
-}
-
-.apiRow {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
+.referenceTable {
+  width: 100%;
+  border-collapse: collapse;
   background: #fff;
   border-radius: 8px;
+  overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
 
-.apiName {
-  flex: 0 0 120px;
-  font-weight: 700;
-  color: #0088ee;
-  font-family: "Fira Code", "Consolas", monospace;
-  font-size: 0.95rem;
-}
-
-.apiRole {
-  flex: 1;
-  color: #555;
-  font-size: 0.9rem;
-}
-
-.tryIt {
-  margin-top: 32px;
-  padding: 24px;
-  background: linear-gradient(135deg, #fff8e6 0%, #fff3cd 100%);
-  border-radius: 12px;
-  border-left: 4px solid #ffc107;
-
-  h3 {
-    margin: 0 0 12px;
-    font-size: 1.2rem;
-    color: #856404;
+  th,
+  td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
   }
 
-  p {
-    margin: 0;
-    color: #666;
-    line-height: 1.6;
+  th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.85rem;
+  }
+
+  td {
+    font-size: 0.9rem;
+    color: #555;
+
+    code {
+      background: #e6f4ff;
+      color: #0088ee;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "Fira Code", "Consolas", monospace;
+      font-size: 0.85rem;
+    }
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: #f8fafc;
   }
 }
 
@@ -266,6 +535,34 @@
 
   .title {
     font-size: 1.4rem;
+  }
+
+  .dataFlowSection {
+    padding: 16px;
+  }
+
+  .dataFlow {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .flowItem {
+    flex-direction: column;
+  }
+
+  .flowNode {
+    min-width: 140px;
+  }
+
+  .flowArrow {
+    transform: rotate(90deg);
+    padding: 4px 0;
+  }
+
+  .flowLegend {
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .step {
@@ -290,11 +587,30 @@
     font-size: 1.1rem;
   }
 
-  .apiName {
-    flex: 0 0 100px;
-  }
-
   .code {
     font-size: 0.75rem;
+  }
+
+  .referenceTable {
+    display: block;
+    overflow-x: auto;
+
+    th,
+    td {
+      padding: 10px 12px;
+      font-size: 0.8rem;
+    }
+  }
+
+  .prosConsContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .keyInsight {
+    padding: 16px;
+
+    p {
+      font-size: 0.9rem;
+    }
   }
 }

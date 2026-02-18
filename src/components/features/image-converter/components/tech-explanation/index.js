@@ -1,235 +1,281 @@
 import styles from "./index.module.scss";
 
+// Data flow diagram showing the transformation pipeline with WHY context
+const DATA_FLOW = [
+  {
+    id: "file",
+    label: "File",
+    type: "Browser File object",
+    description: "Raw binary from input",
+  },
+  {
+    id: "arraybuffer",
+    label: "ArrayBuffer",
+    type: "Uint8Array",
+    description: "Byte-level access",
+  },
+  {
+    id: "dataurl",
+    label: "Data URL",
+    type: "Base64 string",
+    description: "Embeddable format",
+  },
+  {
+    id: "image",
+    label: "Image",
+    type: "HTMLImageElement",
+    description: "Decoded pixels",
+  },
+  {
+    id: "canvas",
+    label: "Canvas",
+    type: "RGBA bitmap",
+    description: "Editable surface",
+  },
+  {
+    id: "blob",
+    label: "Blob",
+    type: "Binary data",
+    description: "Compressed output",
+  },
+  {
+    id: "objecturl",
+    label: "Object URL",
+    type: "blob:// URL",
+    description: "Memory reference",
+  },
+];
+
 const STEPS = [
   {
     title: "Waiting for Input",
     description: "Select an image file to begin the conversion process.",
-    api: null,
-    code: null,
+    dataFlow: null,
   },
   {
-    title: "Validating File Signature",
-    description:
-      "Before processing, we read the file's binary signature (first few bytes) to verify its actual format. This prevents issues where a file extension doesn't match the true content.",
+    title: "File Signature Validation",
+    why: "File extensions can be easily renamed (photo.exe → photo.jpg). Reading the actual bytes ensures security and prevents processing corrupt or malicious files.",
     api: "FileReader.readAsArrayBuffer()",
-    code: `// File Signature Detection
-// Each image format has a unique byte sequence at the start
-const FILE_SIGNATURES = {
-  jpeg: [0xFF, 0xD8, 0xFF],           // JPEG always starts with these bytes
-  png:  [0x89, 0x50, 0x4E, 0x47],     // PNG signature: \x89PNG
-  gif:  [0x47, 0x49, 0x46],           // GIF starts with "GIF"
-  webp: [0x52, 0x49, 0x46, 0x46],     // WebP: "RIFF" + "WEBP" at byte 8
-  bmp:  [0x42, 0x4D],                 // BMP starts with "BM"
-};
+    dataFlow: { from: "file", to: "arraybuffer" },
+    code: `// WHY ArrayBuffer? Direct byte access without encoding overhead
+const buffer = await file.slice(0, 12).arrayBuffer();
+const bytes = new Uint8Array(buffer);
 
-async function detectFileType(file) {
-  // Read first 12 bytes of the file
-  const buffer = await file.slice(0, 12).arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  
-  // Compare against known signatures
-  for (const [format, signature] of Object.entries(FILE_SIGNATURES)) {
-    const matches = signature.every((byte, i) => bytes[i] === byte);
-    if (matches) return format;
-  }
-  
-  return null; // Unknown format
-}
-
-// Example: Detect if "photo.jpg" is actually a WebP
-const actualType = await detectFileType(file);
-if (actualType !== expectedType) {
-  console.warn('File extension mismatch! Actual format:', actualType);
-}`,
-    keyPoints: [
-      "File signatures (header bytes) identify the true format",
-      "Prevents processing files with misleading extensions",
-      "Only reads a few bytes - very fast operation",
-      "WebP/AVIF require additional validation at specific offsets",
+// Each format has unique "magic bytes" at the start
+const isJPEG = bytes[0] === 0xFF && bytes[1] === 0xD8;
+const isPNG = bytes[0] === 0x89 && bytes[1] === 0x50; // ‰P`,
+    pros: [
+      "✅ Fast: Only reads first few bytes, not entire file",
+      "✅ Secure: Detects spoofed extensions",
+      "✅ Efficient: No encoding overhead (unlike Base64)",
     ],
+    cons: ["⚠️ Low-level: Must manually interpret byte patterns"],
   },
   {
-    title: "Reading File with FileReader API",
-    description:
-      "The FileReader API reads the selected file from your device's file system. It converts the binary file data into a format JavaScript can work with.",
-    api: "FileReader API",
-    code: `// Step 1: Read file as DataURL (base64 encoded string)
+    title: "Read File as Data URL",
+    why: "The Image element cannot read File objects directly. Data URLs embed the entire file as a Base64 string that can be assigned to img.src.",
+    api: "FileReader.readAsDataURL()",
+    dataFlow: { from: "file", to: "dataurl" },
+    code: `// WHY Data URL? Only way to load local files into <img>
 const reader = new FileReader();
-
-reader.onload = (event) => {
-  // event.target.result contains the base64 DataURL
-  // Format: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAA..."
-  const dataUrl = event.target.result;
+reader.onload = (e) => {
+  // Result: "data:image/jpeg;base64,/9j/4AAQ..."
+  img.src = e.target.result;
 };
-
-reader.onerror = (error) => {
-  console.error('Failed to read file:', error);
-};
-
-// Start reading the file
 reader.readAsDataURL(file);`,
-    keyPoints: [
-      "Runs entirely in the browser - no server upload needed",
-      "readAsDataURL() returns a base64-encoded string",
-      "Alternative: readAsArrayBuffer() for binary processing",
-      "Asynchronous operation - must use callbacks or Promises",
+    pros: [
+      "✅ Self-contained: The string IS the data",
+      "✅ Persistent: Works after original File is garbage collected",
+      "✅ Serializable: Can store in state, localStorage, send to server",
     ],
+    cons: [
+      "⚠️ Size: Base64 adds ~33% overhead (10MB file → 13.3MB string)",
+      "⚠️ Memory: Entire file duplicated as string",
+    ],
+    alternative:
+      "URL.createObjectURL(file) is faster (instant, no encoding) and uses less memory (just a pointer), but requires manual cleanup with revokeObjectURL() and the URL becomes invalid after page refresh. Best for large files with short display needs.",
   },
   {
-    title: "Decoding Image with Image Element",
-    description:
-      "The HTML Image element decodes the base64 DataURL into actual image pixel data that can be drawn on a canvas.",
+    title: "Decode Image",
+    why: "The browser's native image decoder handles all format complexity (JPEG compression, PNG filtering, etc.). We get clean pixel data without implementing decoders ourselves.",
     api: "HTMLImageElement",
-    code: `// Step 2: Create Image element and load the DataURL
+    dataFlow: { from: "dataurl", to: "image" },
+    code: `// WHY Image element? Browser handles ALL format decoding
 const img = new Image();
-
 img.onload = () => {
-  // Image is now decoded and ready to use
-  console.log('Image dimensions:', img.width, 'x', img.height);
-  
-  // Now we can draw it on a canvas
-  drawOnCanvas(img);
+  // Browser decoded JPEG/PNG/WebP → raw pixels
+  console.log(\`Ready: \${img.width}x\${img.height}\`);
 };
-
-img.onerror = () => {
-  console.error('Failed to decode image');
-};
-
-// Set the source to trigger loading
-img.src = dataUrl; // The DataURL from FileReader`,
-    keyPoints: [
-      "Browser automatically detects and decodes the image format",
-      "Supports JPEG, PNG, WebP, GIF, BMP, SVG, and more",
-      "Asynchronous - image loads in the background",
-      "Alternative: createImageBitmap() for better performance",
+img.src = dataUrl;`,
+    pros: [
+      "✅ Zero code: Browser handles JPEG, PNG, WebP, GIF, BMP, SVG, AVIF",
+      "✅ Hardware accelerated: GPU-assisted decoding",
+      "✅ Error handling: Built-in onerror callback",
+    ],
+    cons: [
+      "⚠️ Async: Must wait for onload event",
+      "⚠️ CORS: Cross-origin images may be tainted",
     ],
   },
   {
-    title: "Rendering with Canvas API",
-    description:
-      "The Canvas API provides a 2D drawing surface where we can manipulate the image. This is where the actual format conversion happens.",
+    title: "Draw to Canvas",
+    why: "Canvas is the ONLY browser API that lets us access raw pixels. It's the bridge between decoded images and re-encoded output. Also enables resizing, cropping, and filters.",
     api: "Canvas API",
-    code: `// Step 3: Draw image on canvas for processing
+    dataFlow: { from: "image", to: "canvas" },
+    code: `// WHY Canvas? Only way to access/modify pixels in browser
 const canvas = document.createElement('canvas');
-const ctx = canvas.getContext('2d');
-
-// Set canvas size to match desired output dimensions
-canvas.width = targetWidth;
+canvas.width = targetWidth;   // Resize here!
 canvas.height = targetHeight;
 
-// For JPEG output, fill with white (no transparency support)
-if (outputFormat === 'image/jpeg') {
+const ctx = canvas.getContext('2d');
+
+// JPEG doesn't support transparency - fill white first
+if (format === 'image/jpeg') {
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// Draw the image onto the canvas
-// This decodes pixels and allows manipulation
-ctx.drawImage(
-  img,           // Source image
-  0, 0,          // Destination x, y
-  canvas.width,  // Destination width
-  canvas.height  // Destination height
-);
-
-// Optional: Apply filters, transformations, etc.
-// ctx.filter = 'grayscale(100%)';
-// ctx.globalAlpha = 0.5;`,
-    keyPoints: [
-      "Canvas is a pixel-based drawing surface",
-      "drawImage() can resize the image automatically",
-      "Can apply filters, rotations, and transformations",
-      "Memory usage scales with canvas dimensions",
+// Draw with automatic resize interpolation
+ctx.drawImage(img, 0, 0, canvas.width, canvas.height);`,
+    pros: [
+      "✅ Powerful: Resize, crop, rotate, filter in one step",
+      "✅ Fast: Hardware-accelerated rendering",
+      "✅ Flexible: Can combine multiple images",
+    ],
+    cons: [
+      "⚠️ Memory: Uncompressed RGBA = 4 bytes/pixel (4000×3000 = 48MB!)",
+      "⚠️ Limits: Browsers cap canvas at ~16384px or ~268M pixels",
     ],
   },
   {
-    title: "Exporting with canvas.toBlob()",
-    description:
-      "The toBlob() method converts the canvas pixels into a compressed image file in the desired format. This is where format conversion actually occurs.",
-    api: "Blob API + Canvas.toBlob()",
-    code: `// Step 4: Export canvas as a Blob in the target format
+    title: "Export to Blob",
+    why: "toBlob() re-encodes raw canvas pixels into compressed formats. This is where format conversion actually happens - the browser's encoder compresses to JPEG/PNG/WebP.",
+    api: "canvas.toBlob()",
+    dataFlow: { from: "canvas", to: "blob" },
+    code: `// WHY Blob? Efficient binary storage (not Base64 string)
 canvas.toBlob(
   (blob) => {
-    if (blob) {
-      console.log('Converted successfully!');
-      console.log('New size:', blob.size, 'bytes');
-      console.log('Type:', blob.type);
-      
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      downloadFile(url, 'converted.jpg');
-      
-      // IMPORTANT: Revoke URL to free memory
-      URL.revokeObjectURL(url);
-    } else {
-      console.error('Conversion failed');
-    }
+    // blob.size = compressed file size in bytes
+    // blob.type = 'image/jpeg'
   },
-  'image/jpeg',  // Target MIME type
-  0.9            // Quality (0.0 to 1.0, for JPEG/WebP)
+  'image/jpeg',  // Target format
+  0.85           // Quality: 0.0 (tiny) to 1.0 (best)
 );
 
-// Supported output formats (browser dependent):
-// - 'image/jpeg' - Lossy, no transparency, quality setting
-// - 'image/png'  - Lossless, supports transparency
-// - 'image/webp' - Modern format, best compression`,
-    keyPoints: [
-      "Browser's built-in encoder handles compression",
-      "Quality parameter only works for JPEG and WebP",
-      "PNG is always lossless (quality parameter ignored)",
-      "Blob is a raw binary object, efficient for large files",
-      "URL.createObjectURL() creates a temporary download URL",
+// PNG ignores quality - always lossless
+// WebP: best compression + quality control`,
+    pros: [
+      "✅ Efficient: Binary data, not bloated Base64",
+      "✅ Quality control: Fine-tune JPEG/WebP compression",
+      "✅ Native: Browser's optimized encoders",
+    ],
+    cons: [
+      "⚠️ Limited formats: Only JPEG, PNG, WebP (browser-dependent)",
+      "⚠️ Async: Uses callback, not return value",
     ],
   },
   {
-    title: "Download Complete!",
-    description:
-      "The converted image has been downloaded to your device. The entire process happened in your browser without any server involvement.",
+    title: "Download",
+    why: "Object URLs create a temporary pointer to in-memory Blob data. This avoids re-encoding to Base64 and enables efficient downloads of large files.",
     api: "URL.createObjectURL()",
-    code: `// Step 5: Trigger file download
-function downloadFile(blob, filename) {
-  // Create a temporary URL for the Blob
-  const url = URL.createObjectURL(blob);
-  
-  // Create a temporary <a> element
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename; // Suggested filename
-  
-  // Programmatically click the link
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  // IMPORTANT: Free memory by revoking the URL
-  URL.revokeObjectURL(url);
-}`,
-    keyPoints: [
-      "URL.createObjectURL() creates a blob: URL",
-      "The download attribute suggests a filename",
-      "No actual network request is made",
-      "Always revoke URLs to prevent memory leaks",
+    dataFlow: { from: "blob", to: "objecturl" },
+    code: `// WHY Object URL? Memory-efficient reference to Blob
+const url = URL.createObjectURL(blob);
+// Returns: "blob:http://localhost:3000/a1b2c3d4..."
+
+const a = document.createElement('a');
+a.href = url;
+a.download = 'converted.jpg';  // Suggested filename
+a.click();
+
+// CRITICAL: Free memory when done!
+URL.revokeObjectURL(url);`,
+    pros: [
+      "✅ Efficient: No Base64 conversion needed",
+      "✅ Fast: Direct memory reference",
+      "✅ Large files: Works with any size",
+    ],
+    cons: [
+      "⚠️ Memory leak risk: MUST call revokeObjectURL()",
+      "⚠️ Temporary: Invalid after revoke or page unload",
     ],
   },
 ];
 
 export default function TechExplanation({ currentStep }) {
+  // Find active transformation in the data flow
+  const activeStep = STEPS[currentStep];
+  const activeFromId = activeStep?.dataFlow?.from;
+  const activeToId = activeStep?.dataFlow?.to;
+
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>🔧 How It Works: The Technical Flow</h2>
+      <h2 className={styles.title}>🔧 How It Works</h2>
       <p className={styles.intro}>
-        This image converter uses native browser APIs to process images entirely
-        on your device. No server uploads, no privacy concerns. Here&apos;s how
-        each step works:
+        All processing happens in your browser using native APIs. No server
+        uploads.
       </p>
 
+      {/* Visual Data Flow Diagram */}
+      <div className={styles.dataFlowSection}>
+        <h3 className={styles.sectionTitle}>📊 Data Transformation Pipeline</h3>
+        <div className={styles.dataFlow}>
+          {DATA_FLOW.map((node, index) => {
+            const isActive = node.id === activeFromId || node.id === activeToId;
+            const isCompleted =
+              DATA_FLOW.findIndex((n) => n.id === activeFromId) > index ||
+              (currentStep === STEPS.length - 1 && index < DATA_FLOW.length);
+            const isSource = node.id === activeFromId;
+            const isTarget = node.id === activeToId;
+
+            return (
+              <div key={node.id} className={styles.flowItem}>
+                <div
+                  className={`${styles.flowNode} ${isActive ? styles.flowNodeActive : ""} ${isCompleted ? styles.flowNodeCompleted : ""} ${isSource ? styles.flowNodeSource : ""} ${isTarget ? styles.flowNodeTarget : ""}`}
+                >
+                  <div className={styles.flowLabel}>{node.label}</div>
+                  <div className={styles.flowType}>{node.type}</div>
+                  <div className={styles.flowDesc}>{node.description}</div>
+                </div>
+                {index < DATA_FLOW.length - 1 && (
+                  <div
+                    className={`${styles.flowArrow} ${isSource ? styles.flowArrowActive : ""} ${isCompleted ? styles.flowArrowCompleted : ""}`}
+                  >
+                    →
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className={styles.flowLegend}>
+          <span className={styles.legendItem}>
+            <span
+              className={styles.legendDot + " " + styles.legendSource}
+            ></span>
+            Source
+          </span>
+          <span className={styles.legendItem}>
+            <span
+              className={styles.legendDot + " " + styles.legendTarget}
+            ></span>
+            Target
+          </span>
+          <span className={styles.legendItem}>
+            <span
+              className={styles.legendDot + " " + styles.legendCompleted}
+            ></span>
+            Completed
+          </span>
+        </div>
+      </div>
+
+      {/* Step-by-step breakdown */}
       <div className={styles.timeline}>
         {STEPS.map((step, index) => (
           <div
             key={index}
-            className={`${styles.step} ${
-              index === currentStep ? styles.active : ""
-            } ${index < currentStep ? styles.completed : ""}`}
+            className={`${styles.step} ${index === currentStep ? styles.active : ""} ${index < currentStep ? styles.completed : ""}`}
           >
             <div className={styles.stepIndicator}>
               <div className={styles.stepNumber}>
@@ -243,7 +289,25 @@ export default function TechExplanation({ currentStep }) {
                 {step.title}
                 {step.api && <span className={styles.apiTag}>{step.api}</span>}
               </h3>
-              <p className={styles.stepDescription}>{step.description}</p>
+
+              {step.why && (
+                <div className={styles.whyBox}>
+                  <span className={styles.whyLabel}>Why?</span>
+                  <p className={styles.whyText}>{step.why}</p>
+                </div>
+              )}
+
+              {step.dataFlow && (
+                <div className={styles.transformBadge}>
+                  <span className={styles.transformFrom}>
+                    {DATA_FLOW.find((d) => d.id === step.dataFlow.from)?.label}
+                  </span>
+                  <span className={styles.transformArrow}>→</span>
+                  <span className={styles.transformTo}>
+                    {DATA_FLOW.find((d) => d.id === step.dataFlow.to)?.label}
+                  </span>
+                </div>
+              )}
 
               {step.code && (
                 <div className={styles.codeBlock}>
@@ -260,14 +324,34 @@ export default function TechExplanation({ currentStep }) {
                 </div>
               )}
 
-              {step.keyPoints && (
-                <div className={styles.keyPoints}>
-                  <h4>Key Points:</h4>
-                  <ul>
-                    {step.keyPoints.map((point, i) => (
-                      <li key={i}>{point}</li>
-                    ))}
-                  </ul>
+              {(step.pros || step.cons) && (
+                <div className={styles.prosConsContainer}>
+                  {step.pros && (
+                    <div className={styles.prosBox}>
+                      <h4>Advantages</h4>
+                      <ul>
+                        {step.pros.map((pro, i) => (
+                          <li key={i}>{pro}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {step.cons && (
+                    <div className={styles.consBox}>
+                      <h4>Trade-offs</h4>
+                      <ul>
+                        {step.cons.map((con, i) => (
+                          <li key={i}>{con}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {step.alternative && (
+                <div className={styles.alternativeNote}>
+                  💡 {step.alternative}
                 </div>
               )}
             </div>
@@ -275,46 +359,80 @@ export default function TechExplanation({ currentStep }) {
         ))}
       </div>
 
+      {/* Quick Reference Table */}
       <div className={styles.summary}>
-        <h3>📊 Browser API Summary</h3>
-        <div className={styles.apiTable}>
-          <div className={styles.apiRow}>
-            <div className={styles.apiName}>File Signature</div>
-            <div className={styles.apiRole}>
-              Validates actual format via header bytes
-            </div>
-          </div>
-          <div className={styles.apiRow}>
-            <div className={styles.apiName}>FileReader</div>
-            <div className={styles.apiRole}>
-              Reads files from device → DataURL
-            </div>
-          </div>
-          <div className={styles.apiRow}>
-            <div className={styles.apiName}>Image</div>
-            <div className={styles.apiRole}>Decodes DataURL → Pixel data</div>
-          </div>
-          <div className={styles.apiRow}>
-            <div className={styles.apiName}>Canvas</div>
-            <div className={styles.apiRole}>Renders & manipulates pixels</div>
-          </div>
-          <div className={styles.apiRow}>
-            <div className={styles.apiName}>toBlob()</div>
-            <div className={styles.apiRole}>Encodes pixels → Target format</div>
-          </div>
-          <div className={styles.apiRow}>
-            <div className={styles.apiName}>Blob/URL</div>
-            <div className={styles.apiRole}>Creates downloadable file</div>
-          </div>
-        </div>
+        <h3>📋 Data Structure Comparison</h3>
+        <table className={styles.referenceTable}>
+          <thead>
+            <tr>
+              <th>Structure</th>
+              <th>Why Use It?</th>
+              <th>Trade-off</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <code>File</code>
+              </td>
+              <td>Browser&apos;s native file handle from input</td>
+              <td>Can&apos;t read content directly</td>
+            </tr>
+            <tr>
+              <td>
+                <code>ArrayBuffer</code>
+              </td>
+              <td>Direct byte access for validation</td>
+              <td>Low-level, manual parsing</td>
+            </tr>
+            <tr>
+              <td>
+                <code>Data URL</code>
+              </td>
+              <td>Only way to load File into Image</td>
+              <td>+33% size from Base64</td>
+            </tr>
+            <tr>
+              <td>
+                <code>Image</code>
+              </td>
+              <td>Browser decodes all formats for free</td>
+              <td>Async, CORS restrictions</td>
+            </tr>
+            <tr>
+              <td>
+                <code>Canvas</code>
+              </td>
+              <td>Only API for pixel manipulation</td>
+              <td>High memory (4 bytes/pixel)</td>
+            </tr>
+            <tr>
+              <td>
+                <code>Blob</code>
+              </td>
+              <td>Efficient binary storage</td>
+              <td>Limited export formats</td>
+            </tr>
+            <tr>
+              <td>
+                <code>Object URL</code>
+              </td>
+              <td>Fast memory reference for download</td>
+              <td>Must revoke to free memory</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div className={styles.tryIt}>
-        <h3>🚀 Try It Yourself</h3>
+      {/* Key Insight */}
+      <div className={styles.keyInsight}>
+        <h3>🎯 Key Insight</h3>
         <p>
-          Copy the code snippets above and paste them into your browser&apos;s
-          Developer Console (F12) to experiment. The complete flow can be
-          implemented in under 50 lines of JavaScript!
+          Each transformation exists because{" "}
+          <strong>browsers don&apos;t provide a direct path</strong> from File
+          to downloadable output. We must traverse: File → decode → raw pixels →
+          re-encode → download. Understanding these steps helps you optimize for
+          speed (skip unnecessary conversions) or memory (process in chunks).
         </p>
       </div>
     </div>
